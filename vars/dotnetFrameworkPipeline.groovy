@@ -53,7 +53,7 @@
 
          steps {
            echo "Package restore started using Nuget.exe ${solutionName}"
-           bat "nuget restore ${solutionName}"
+           bat "dotnet restore ${solutionName}"
 
          }
 

@@ -103,7 +103,7 @@
              def ProjectName = "${packageName}"
              echo "Create nuget package step"
              // Path to your PowerShell script
-             def psScriptPath = 'C:\Tools\commonbuild\\NugetPackagePublish.ps1'
+             def psScriptPath = 'C:\\Tools\\commonbuild\\NugetPackagePublish.ps1'
 
              //print the nuget version that is about get published	
              if (env.BRANCH_NAME == 'master') {

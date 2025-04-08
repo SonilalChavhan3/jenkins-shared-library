@@ -114,7 +114,7 @@ def call(String slnName, String pckgName, String tstProjectName) {
                        // Push with credentials
                         withCredentials([string(credentialsId: 'NEXUS_API_KEY', variable: 'API_KEY')]) {
                             bat """
-                                dotnet nuget push ${WORKSPACE}\\bin\\nuget\\*.nupkg ^
+                                dotnet nuget push ${WORKSPACE}\\${packageName}\\bin\\nuget\\*.nupkg ^
                                     --source http://localhost:55019/repository/batch-24/ ^
                                     --api-key %API_KEY% ^
                                     --skip-duplicate

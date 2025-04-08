@@ -88,12 +88,20 @@ def call(String slnName, String pckgName, String tstProjectName) {
             //     }
             // }
 
-            stage('Publish Project') {
-                steps {
-                    echo "Publishing ${packageName}"
-                    bat "dotnet publish source\\${packageName}\\${packageName}.csproj -c Release -o ${WORKSPACE}\\bin\\publish"
-                }
-            }
+           stage('Publish Project') {
+    steps {
+        echo "Publishing ${packageName}"
+        // Try one of these alternatives:
+        // Option 1: If the path is source/DiaryApp/
+       // bat "dotnet publish source/${packageName}/${packageName}.csproj -c Release -o ${WORKSPACE}\\bin\\publish"
+        
+        // Option 2: If the project is directly in the source folder
+         bat "dotnet publish ${packageName}/${packageName}.csproj -c Release -o ${WORKSPACE}\\Source\\${packageName}\\bin\\Publish\\"
+        
+        // Option 3: For debugging, list the directory structure
+        bat "dir /s /b *.csproj"
+    }
+}
 
             stage('Create & Push NuGet Package') {
                 steps {

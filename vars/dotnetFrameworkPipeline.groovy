@@ -102,7 +102,11 @@ def call(String slnName, String pckgName, String tstProjectName) {
         bat "dir /s /b *.csproj"
     }
 }
-
+stage('Debug: Check PS Script Path') {
+    steps {
+        bat 'if exist "C:\\Tools\\commonbuild\\NugetPackagePublish.ps1" (echo "Script exists") else (echo "Script missing")'
+    }
+}
             stage('Create & Push NuGet Package') {
                 steps {
                     script {

@@ -102,34 +102,36 @@ def call(String slnName, String pckgName, String tstProjectName) {
         bat "dir /s /b *.csproj"
     }
 }
-stage('Debug: Check PS Script Path') {
+
+           stage('Create & Push NuGet Package') {
     steps {
-        bat 'if exist "C:\\Tools\\commonbuild\\NugetPackagePublish.ps1" (echo "Script exists") else (echo "Script missing")'
-    }
-}
-            stage('Create & Push NuGet Package') {
-                steps {
-                    script {
-                        def ProjectName = "${packageName}"
-                        echo "Creating NuGet package for ${ProjectName}"
-
-                        def psScriptPath = 'C:\\Tools\\commonbuild\\NugetPackagePublish.ps1'
-
-                        def branchName = env.BRANCH_NAME.replace('/', '-').replace('_', '').replace('#', '')
-                        def nugetVersion = env.BRANCH_NAME == 'master' ?
-                            "0.0.0-beta${env.BUILD_NUMBER}" :
-                            "0.0.0-alpha${env.BUILD_NUMBER}-${branchName}"
-
-                        nugetVersion = nugetVersion.take(64)
-                        echo "NuGet version getting created: ${nugetVersion}"
-
-                        powershell(returnStdout: true,
-                            script: "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File ${psScriptPath} -ProjectName ${ProjectName} -BranchName ${env.BRANCH_NAME} -BuildNumber ${env.BUILD_NUMBER}")
-                    }
-                }
+        script {
+            def branchName = env.BRANCH_NAME.replace('/', '-')
+            def nugetVersion = env.BRANCH_NAME == 'master' ? 
+                "1.0.0-beta${env.BUILD_NUMBER}" : 
+                "1.0.0-alpha${env.BUILD_NUMBER}-${branchName}"
+            
+            // Pack
+            bat """
+                dotnet pack ${packageName}\\${packageName}.csproj \
+                    -c Release \
+                    -p:IsPackable=true \
+                    -p:PackageVersion=${nugetVersion} \
+                    -o ${WORKSPACE}\\${packageName}\\bin\\nuget
+            """
+            
+            // Push
+            withCredentials([string(credentialsId: 'NEXUS_API_KEY', variable: 'API_KEY')]) {
+                bat """
+                    dotnet nuget push ${WORKSPACE}\\${packageName}\\bin\\nuget\\*.nupkg \
+                        --source http://localhost:55019/repository/batch-24/ \
+                        --api-key %API_KEY% \
+                        --skip-duplicate
+                """
             }
         }
-
+    }
+}
         post {
             always {
                 echo "Cleaning workspace"

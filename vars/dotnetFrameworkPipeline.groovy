@@ -1,4 +1,3 @@
-@Library("jenkins-shared-library") _
 
 def call(String slnName, String pckgName, String tstProjectName) {
 

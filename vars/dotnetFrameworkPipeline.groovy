@@ -1,8 +1,6 @@
-
 def call(String slnName, String pckgName, String tstProjectName) {
 
     def doSonarScan = false
-
     def solutionName = slnName
     def packageName = pckgName
     def testProjectName = tstProjectName
@@ -80,7 +78,7 @@ def call(String slnName, String pckgName, String tstProjectName) {
                 }
             }
 
-            // Uncomment this stage if you want to run tests
+            // Uncomment if test project is needed
             // stage('Run Unit Tests') {
             //     steps {
             //         echo "Running unit tests"
@@ -88,50 +86,45 @@ def call(String slnName, String pckgName, String tstProjectName) {
             //     }
             // }
 
-           stage('Publish Project') {
-    steps {
-        echo "Publishing ${packageName}"
-        // Try one of these alternatives:
-        // Option 1: If the path is source/DiaryApp/
-       // bat "dotnet publish source/${packageName}/${packageName}.csproj -c Release -o ${WORKSPACE}\\bin\\publish"
-        
-        // Option 2: If the project is directly in the source folder
-         bat "dotnet publish ${packageName}/${packageName}.csproj -c Release -o ${WORKSPACE}\\Source\\${packageName}\\bin\\Publish\\"
-        
-        // Option 3: For debugging, list the directory structure
-        bat "dir /s /b *.csproj"
-    }
-}
+            stage('Publish Project') {
+                steps {
+                    echo "Publishing ${packageName}"
+                    bat "dotnet publish ${packageName}\\${packageName}.csproj -c Release -o ${WORKSPACE}\\Source\\${packageName}\\bin\\Publish\\"
+                    bat "dir /s /b *.csproj"
+                }
+            }
 
-           stage('Create & Push NuGet Package') {
-    steps {
-        script {
-            def branchName = env.BRANCH_NAME.replace('/', '-')
-            def nugetVersion = env.BRANCH_NAME == 'master' ? 
-                "1.0.0-beta${env.BUILD_NUMBER}" : 
-                "1.0.0-alpha${env.BUILD_NUMBER}-${branchName}"
-            
-            // Pack
-            bat """
-                dotnet pack ${packageName}\\${packageName}.csproj \
-                    -c Release \
-                    -p:IsPackable=true \
-                    -p:PackageVersion=${nugetVersion} \
-                    -o ${WORKSPACE}\\${packageName}\\bin\\nuget
-            """
-            
-            // Push
-            withCredentials([string(credentialsId: 'NEXUS_API_KEY', variable: 'API_KEY')]) {
-                bat """
-                    dotnet nuget push ${WORKSPACE}\\${packageName}\\bin\\nuget\\*.nupkg \
-                        --source http://localhost:55019/repository/batch-24/ \
-                        --api-key %API_KEY% \
-                        --skip-duplicate
-                """
+            stage('Create & Push NuGet Package') {
+                steps {
+                    script {
+                        def branchName = env.BRANCH_NAME.replace('/', '-')
+                        def nugetVersion = env.BRANCH_NAME == 'master'
+                            ? "1.0.0-beta${env.BUILD_NUMBER}"
+                            : "1.0.0-alpha${env.BUILD_NUMBER}-${branchName}"
+
+                        // Pack
+                        bat """
+                            dotnet pack ${packageName}\\${packageName}.csproj ^
+                                -c Release ^
+                                -p:IsPackable=true ^
+                                -p:PackageVersion=${nugetVersion} ^
+                                -o ${WORKSPACE}\\${packageName}\\bin\\nuget
+                        """
+
+                        // Push
+                        withCredentials([string(credentialsId: 'NEXUS_API_KEY', variable: 'API_KEY')]) {
+                            bat """
+                                dotnet nuget push ${WORKSPACE}\\${packageName}\\bin\\nuget\\*.nupkg ^
+                                    --source http://localhost:55019/repository/batch-24/ ^
+                                    --api-key %API_KEY% ^
+                                    --skip-duplicate
+                            """
+                        }
+                    }
+                }
             }
         }
-    }
-}
+
         post {
             always {
                 echo "Cleaning workspace"
@@ -139,5 +132,4 @@ def call(String slnName, String pckgName, String tstProjectName) {
             }
         }
     }
-}
 }

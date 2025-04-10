@@ -96,31 +96,46 @@
       // }
 
        stage('Create and Push NuGet Package') {
-         steps {
-           script {
-             // Path to your .nuspec file
-		
-             def ProjectName = "${packageName}"
-             echo "Create nuget package step"
-             // Path to your PowerShell script
-             def psScriptPath = 'C:\\Tools\\commonbuild\\NugetPackagePublish.ps1'
+  steps {
+    script {
+      def ProjectName = "${packageName}"
+      def psScriptPath = 'C:\\Tools\\commonbuild\\NugetPackagePublish.ps1'
+      
+      // Verify script exists first
+      def fileExists = fileExists psScriptPath
+      if (!fileExists) {
+        error "PowerShell script not found at ${psScriptPath}"
+      }
 
-             //print the nuget version that is about get published	
-             if (env.BRANCH_NAME == 'master') {
-               nugetVersion = "0.0.0-beta${env.BUILD_NUMBER}"
-             } else {
-               def branchName = env.BRANCH_NAME.replace('/', '-').replace('_', '').replace('#', '') // Replace / with - in branch name
-               nugetVersion = "0.0.0-alpha${env.BUILD_NUMBER}-${branchName}"
-             }
-             nugetVersion = nugetVersion.substring(0, Math.min(nugetVersion.length(), 20))
+      // Determine version (your existing logic)
+      if (env.BRANCH_NAME == 'master') {
+        nugetVersion = "0.0.0-beta${env.BUILD_NUMBER}"
+      } else {
+        def branchName = env.BRANCH_NAME.replace('/', '-').replace('_', '').replace('#', '')
+        nugetVersion = "0.0.0-alpha${env.BUILD_NUMBER}-${branchName}"
+      }
+      nugetVersion = nugetVersion.substring(0, Math.min(nugetVersion.length(), 20))
 
-             echo "Nuget version getting created: ${nugetVersion}"
+      echo "Creating NuGet package version: ${nugetVersion}"
 
-             // Execute PowerShell script with nuspec file path as parameter
-             powershell(returnStdout: true, script: "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File ${psScriptPath} -ProjectName ${ProjectName} -BranchName ${env.BRANCH_NAME} -BuildNumber ${env.BUILD_NUMBER} ")
-           }
-         }
-       }
+      // Execute with try-catch
+      try {
+        def output = powershell(
+          returnStdout: true, 
+          script: """
+            & "${psScriptPath}" `
+              -ProjectName "${ProjectName}" `
+              -BranchName "${env.BRANCH_NAME}" `
+              -BuildNumber "${env.BUILD_NUMBER}"
+          """
+        )
+        echo "PowerShell output: ${output}"
+      } catch (Exception e) {
+        error "Failed to create NuGet package: ${e.toString()}"
+      }
+    }
+  }
+}
 
      }
      post {
